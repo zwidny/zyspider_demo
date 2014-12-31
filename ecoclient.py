@@ -1,31 +1,45 @@
 import json
-from twisted.internet import reactor, protocol
+from twisted.internet import reactor, protocol, defer
 
 
 class Echo(protocol.Protocol):
 
+    results = b''
+
     def dataReceived(self, data):
         print("%s: Called whenever data is received." %
               self.dataReceived.__name__)
-        print(data.decode('utf-8'))
-        reactor.stop()
+        self.results += data
 
     def connectionLost(self, reason):
         print("%s: Called when the connection is shut down." %
               self.connectionLost.__name__)
+        self.factory.getResult(self.results)
 
     def connectionMade(self):
-        send_data = {}
-        send_data['url'] = 'http://tech.ifeng.com/a/20141230/40924964_0.shtml'
-        send_data['indicator'] = ('xpath', '//*[@id="main_content"]')
-        send_data = json.dumps(send_data)
-        self.transport.write(send_data.encode('utf-8'))
         print("%s: Called when a connection is made." %
               self.connectionMade.__name__)
+        send_data = self.factory.spider_args
+        self.transport.write(send_data)
 
 
 class EchoClientFactory(protocol.ClientFactory):
     protocol = Echo
+
+    def __init__(self, url, indicator, deferred):
+        self.deferred = deferred
+
+        def _get_format_spider_args(url, indicator):
+            spider_args = {}
+            spider_args['url'] = url
+            spider_args['indicator'] = indicator
+            return json.dumps(spider_args).encode('utf-8')
+        self.spider_args = _get_format_spider_args(url, indicator)
+
+    def getResult(self, results):
+        if self.deferred is not None:
+            d, self.deferred = self.deferred, None
+            d.callback(results)
 
     def startedConnecting(self, connector):
         print("%s: Called when a connection has been started." %
@@ -42,6 +56,34 @@ class EchoClientFactory(protocol.ClientFactory):
         print(reason.getErrorMessage())
 
 
-reactor.connectTCP('localhost', 8025, EchoClientFactory())
+def twspider(host, port, url, indicator):
+    d = defer.Deferred()
+    factory = EchoClientFactory(url, indicator, d)
+    reactor.connectTCP(host, port, factory)
+    return d
 
-reactor.run()
+
+def main():
+    host = 'localhost'
+    port = 8025
+    url = 'http://news.ifeng.com/a/20141230/42830759_0.shtml'
+    indicator = ('xpath', '//*[@id="main_content"]')
+
+    def twspider_done(_):
+        reactor.stop()
+
+    def result_print(results):
+        results.decode('utf-8')
+        print(results)
+
+    def result_err(err):
+        print(err)
+
+    d = twspider(host, port, url, indicator)
+    d.addCallbacks(result_print, result_err)
+    d.addBoth(twspider_done)
+    reactor.run()
+
+
+if __name__ == '__main__':
+    main()
