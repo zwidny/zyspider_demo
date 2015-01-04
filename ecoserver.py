@@ -13,6 +13,7 @@ class Echo(protocol.Protocol):
         self.factory.processData(data)
         result = self.factory.result
         self.transport.write(result)
+        self.transport.loseConnection()
 
     def connectionLost(self, reason):
         print("%s: Called when the connection is shut down." %
@@ -28,6 +29,8 @@ class EchoForctory(protocol.Factory):
 
     def __init__(self, deferred, *args, **kwargs):
         self.deferred = deferred
+        self.args = args
+        self.kwargs = kwargs
 
     def processData(self, data):
         if self.deferred is not None:
@@ -51,7 +54,6 @@ def main():
         indicator = data.get('indicator')
         result = spider(url, indicator)
         self.result = result.encode('utf-8')
-        return None
 
     def err_result(err):
         print(err)

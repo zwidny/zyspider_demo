@@ -73,7 +73,7 @@ def main():
         reactor.stop()
 
     def result_print(results):
-        results.decode('utf-8')
+        results = results.decode('utf-8')
         print(results)
 
     def result_err(err):

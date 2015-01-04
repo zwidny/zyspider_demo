@@ -4,6 +4,11 @@ import lxml.html
 
 
 def get_url_content(url, **kwargs):
+    '''
+
+    Get bytes content from url
+
+    '''
     q = requests.get(url, **kwargs)
     return q.content
 
@@ -35,8 +40,6 @@ def get_specify_content(source, location):
 
 
 def spider(url, location_indicator, *args, **kwargs):
-    args = args
-    kwargs = kwargs
     content = get_url_content(url)
     result = get_specify_content(content, location_indicator)
     return result
