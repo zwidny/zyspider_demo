@@ -13,33 +13,68 @@ def get_url_content(url, **kwargs):
     return q.content
 
 
-def get_specify_content(source, location):
+def get_item(html_content, indicator):
     '''
-    Arguments:
-        source  : data source / unicode html
-        location: datasource  / a couple of (method, path)
-    Results:
-        return specify content
+    Argument:
+        @content  --  html content
+        @indicator -- (a, x, y, z):
+            a - the name of the content you want get
+            x - the content type you want to  extract. for example: text or href
+            y - the type of y (xpath, cssselect, re)
+            z - the value of y
+
+    Return:
+        the unicode content you extract
     '''
-    html_element = lxml.html.fromstring(source)
-    sign, path = location
-    if sign == 'xpath':
-        result = html_element.xpath(path)
-        if result:
-            return result[0].text_content()
+    bhtml = lxml.html.fromstring(html_content)
+    name, target_type, indicator_type, indicator_value = indicator
+    if target_type == "text":
+        if indicator_type == "xpath":
+            target = bhtml.xpath(indicator_value)
+            if target:
+                target = target[0]
+                return (name, target.text_content())
+            else:
+                print("%s is invalid" % indicator_value)
+        elif indicator_type == "cssselect":
+            target = bhtml.cssselect(indicator_value)
+            if target:
+                target = target[0]
+                return (name, target.text_content())
+            else:
+                print("%s is invalid" % indicator_value)
         else:
-            return ''
-    elif sign == 'cssselect':
-        result = html_element.cssselect(path)
-        if result:
-            return result[0].text_content()
+            print("%s is invalide" % indicator_type)
+    elif target_type == "href":
+        if indicator_type == "xpath":
+            target = bhtml.xpath(indicator_value)
+            if target:
+                target = target[0]
+                return (name, target.attrib['href'])
+            else:
+                print("%s is invalid" % indicator_value)
+        elif indicator_type == "cssselect":
+            target = bhtml.cssselect(indicator_value)
+            if target:
+                target = target[0]
+                return (name, target.attrib['href'])
+            else:
+                print("%s is invalid" % indicator_value)
+
         else:
-            return ''
+            print("%s is invalide" % indicator_type)
     else:
-        pass
+        print("%s is invalid" % target_type)
+    return
+
+
+def get_items(html_content, indicators):
+    content = []
+    for i in indicators:
+        content.append(get_item(html_content, i))
+    return content
 
 
 def spider(url, location_indicator, *args, **kwargs):
-    content = get_url_content(url)
-    result = get_specify_content(content, location_indicator)
-    return result
+    html_content = get_url_content(url)
+    return get_items(html_content, location_indicator)
