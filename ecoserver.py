@@ -53,7 +53,8 @@ def main():
         url = data.get('url')
         indicator = data.get('indicator')
         result = spider(url, indicator)
-        self.result = result.encode('utf-8')
+        results = json.dumps(result)
+        self.result = results.encode('utf-8')
 
     def err_result(err):
         print(err)
