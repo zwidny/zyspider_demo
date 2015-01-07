@@ -63,18 +63,16 @@ def twspider(host, port, url, indicator):
     return d
 
 
-def main():
-    host = 'localhost'
-    port = 8025
-    url = 'http://news.ifeng.com/a/20141230/42830759_0.shtml'
-    indicator = ('xpath', '//*[@id="main_content"]')
+def main(host, port, url, indicator):
 
-    def twspider_done(_):
+    def twspider_done(e):
         reactor.stop()
+        return e
 
     def result_print(results):
         results = results.decode('utf-8')
-        print(results)
+        results = json.loads(results)
+        return results
 
     def result_err(err):
         print(err)
@@ -83,7 +81,11 @@ def main():
     d.addCallbacks(result_print, result_err)
     d.addBoth(twspider_done)
     reactor.run()
-
+    return d.result
 
 if __name__ == '__main__':
-    main()
+    host = 'localhost'
+    port = 8025
+    url = 'http://news.ifeng.com/a/20141230/42830759_0.shtml'
+    indicator = (('content', 'xpath', '//*[@id="main_content"]'),)
+    result = main(host, port, url, indicator)
