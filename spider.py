@@ -3,6 +3,17 @@ import requests
 import lxml.html
 
 
+def get_unicode(alist):
+    if alist:
+        alist = [str(i).strip() for i in alist]
+        return ''.join(alist)
+    else:
+        return ''
+
+
+_ = get_unicode
+
+
 def get_url_content(url, **kwargs):
     '''
 
@@ -25,6 +36,7 @@ def get_item(html_content, indicator):
 
     Return:
         tuple($name, $content you extract)
+
     '''
     bhtml = lxml.html.fromstring(html_content)
     name, target_type, indicator_type, indicator_value = indicator
@@ -78,3 +90,37 @@ def get_items(html_content, indicators):
 def spider(url, location_indicator, *args, **kwargs):
     html_content = get_url_content(url)
     return get_items(html_content, location_indicator)
+
+
+def crawl(html_element, selectors):
+    result = {}
+    if selectors:
+        for (k, v) in selectors.items():
+            result[k] = _(html_element.xpath(v))
+    return result
+
+
+def crawls(url, selectors, addition):
+    '''
+
+    Argument:
+        @url  -
+        @selectors  - {name:xpath, ...}
+        @addition  - (next_url_xpath, $selectors, $addition)
+
+    return:
+        [{name:content, ...}, {name:content, }, ...]
+
+    '''
+    results = []
+    bhtml = get_url_content(url)
+    html = lxml.html.fromstring(bhtml)
+    results.append(crawl(html, selectors))
+    if addition:
+        next_url_xpath, selectors, addition = addition
+        next_url = html.xpath(next_url_xpath)
+        for url in next_url:
+            results += crawls(url, selectors, addition)
+        return results
+    else:
+        return results
