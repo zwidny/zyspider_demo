@@ -17,14 +17,14 @@ def get_item(html_content, indicator):
     '''
     Argument:
         @content  --  html content
-        @indicator -- (a, x, y, z):
-            a - the name of the content you want get
-            x - the content type you want to  extract. for example: text or href
-            y - the type of y (xpath, cssselect, re)
-            z - the value of y
+        @indicator -- (name, cotent_type, indicator_type, indicator):
+            name - the name of the content you want get
+            content_type - the content type you want to  extract. for example: text or href
+            indicator_type - the type of (xpath, cssselect, re)
+            indicatorz - the value of indicator_type
 
     Return:
-        the unicode content you extract
+        tuple($name, $content you extract)
     '''
     bhtml = lxml.html.fromstring(html_content)
     name, target_type, indicator_type, indicator_value = indicator
