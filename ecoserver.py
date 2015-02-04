@@ -2,15 +2,18 @@
 import json
 from twisted.internet import protocol, reactor, defer
 
-from spider import spider
+from spider import crawls
 
 
 class Echo(protocol.Protocol):
 
     def dataReceived(self, data):
+        '''
+        接受来自client的参数, 返回爬取结果
+        '''
         print("%s: Called whenever data is received." %
               self.dataReceived.__name__)
-        self.factory.processData(data)
+        self.factory.processData(data.decode('utf-8'))
         result = self.factory.result
         self.transport.write(result)
         self.transport.loseConnection()
@@ -38,31 +41,29 @@ class EchoForctory(protocol.Factory):
             d.callback((self, data))
 
 
-def set_server(port):
-    d = defer.Deferred()
-    factory = EchoForctory(d)
-    reactor.listenTCP(port, factory)
-    return d
+def main(port):
 
-
-def main():
+    def set_server(port):
+        d = defer.Deferred()
+        factory = EchoForctory(d)
+        reactor.listenTCP(port, factory)
+        return d
 
     def get_result(args):
         self, data = args
-        data = json.loads(data.decode('utf-8'))
-        url = data.get('url')
-        indicator = data.get('indicator')
-        result = spider(url, indicator)
+        data = json.loads(data)
+        result = crawls(*data)
         results = json.dumps(result)
         self.result = results.encode('utf-8')
 
     def err_result(err):
         print(err)
 
-    port = 8025
     d = set_server(port)
     d.addCallbacks(get_result, err_result)
     reactor.run()
 
 if __name__ == '__main__':
-    main()
+    port = 8025
+    print("EcoServer Start at %d" % port)
+    main(port)

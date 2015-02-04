@@ -19,22 +19,16 @@ class Echo(protocol.Protocol):
     def connectionMade(self):
         print("%s: Called when a connection is made." %
               self.connectionMade.__name__)
-        send_data = self.factory.spider_args
-        self.transport.write(send_data)
+        spider_args = self.factory.spider_args
+        self.transport.write(spider_args.encode('utf-8'))
 
 
 class EchoClientFactory(protocol.ClientFactory):
     protocol = Echo
 
-    def __init__(self, url, indicator, deferred):
+    def __init__(self, deferred, *args):
         self.deferred = deferred
-
-        def _get_format_spider_args(url, indicator):
-            spider_args = {}
-            spider_args['url'] = url
-            spider_args['indicator'] = indicator
-            return json.dumps(spider_args).encode('utf-8')
-        self.spider_args = _get_format_spider_args(url, indicator)
+        self.spider_args = json.dumps(args)
 
     def getResult(self, results):
         if self.deferred is not None:
@@ -56,14 +50,12 @@ class EchoClientFactory(protocol.ClientFactory):
         print(reason.getErrorMessage())
 
 
-def twspider(host, port, url, indicator):
-    d = defer.Deferred()
-    factory = EchoClientFactory(url, indicator, d)
-    reactor.connectTCP(host, port, factory)
-    return d
-
-
-def main(host, port, url, indicator):
+def main(host, port, *args):
+    def twspider(host, port, *args):
+        d = defer.Deferred()
+        factory = EchoClientFactory(d, *args)
+        reactor.connectTCP(host, port, factory)
+        return d
 
     def twspider_done(e):
         reactor.stop()
@@ -77,7 +69,7 @@ def main(host, port, url, indicator):
     def result_err(err):
         print(err)
 
-    d = twspider(host, port, url, indicator)
+    d = twspider(host, port, *args)
     d.addCallbacks(result_print, result_err)
     d.addBoth(twspider_done)
     reactor.run()
